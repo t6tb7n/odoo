@@ -5,12 +5,23 @@ import { Domain } from "@web/core/domain";
 import { DynamicList } from "./dynamic_list";
 import { getGroupServerValue } from "./utils";
 
+/**
+ * @typedef GroupData
+ * @property {number} length
+ * @property {any} groups
+ */
+
+/**
+ * @typedef GroupData2
+ * @property {any} value
+ */
+
 export class DynamicGroupList extends DynamicList {
     static type = "DynamicGroupList";
 
     /**
      * @param {import("./relational_model").Config} config
-     * @param {Object} data
+     * @param {GroupData} data
      */
     setup(config, data) {
         super.setup(...arguments);
@@ -18,6 +29,9 @@ export class DynamicGroupList extends DynamicList {
         this._setData(data);
     }
 
+    /**
+     * @param {GroupData} data
+     */
     _setData(data) {
         /** @type {import("./group").Group[]} */
         this.groups = data.groups.map((g) => this._createGroupDatapoint(g));

@@ -40,6 +40,7 @@ export class Record extends DataPoint {
         // Be careful that pending changes might not have been notified yet, so the "dirty" flag may
         // be false even though there are changes in a field. Consider calling "isDirty()" instead.
         this.dirty = false;
+        /** @type {boolean} */
         this.selected = false;
 
         this._invalidFields = new Set();

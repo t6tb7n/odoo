@@ -63,6 +63,9 @@ import {
  * @property {Object} [groups]
  * @property {Object} [currentGroups] // FIXME: could be cleaned
  * @property {boolean} [openGroupsByDefault]
+ * @property {Record} [_record] // [TECHSAT] added for tree
+ * @property {number} [level] // [TECHSAT] added for tree
+ * @property {[number]} [parent_id] // [TECHSAT] added for tree
  */
 
 /**

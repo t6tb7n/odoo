@@ -29,12 +29,17 @@ import { getId } from "./utils";
  * @property {boolean} onChange
  */
 
+/**
+ * @typedef Options
+ * @property {boolean} [manuallyAdded]
+ */
+
 export class DataPoint extends Reactive {
     /**
      * @param {import("./relational_model").RelationalModel} model
-     * @param {import("./relational_model").Config"} config
-     * @param {any} data
-     * @param {Object} [options]
+     * @param {import("./relational_model").Config} config
+     * @param {Record} data
+     * @param {Options} [options]
      */
     constructor(model, config, data, options) {
         super(...arguments);
