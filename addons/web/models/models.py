@@ -47,23 +47,6 @@ class Base(models.AbstractModel):
         values_records = records.web_read(specification)
         return self._format_web_search_read_results(domain, values_records, offset, limit, count_limit)
 
-    @api.model
-    def web_search_read_tree(self, domain, specification, parent_id, depth, offset=0, limit=None, order=None, count_limit=None):
-        if depth == 0:
-            return []
-
-        _domain = [('parent_id', '=', parent_id)] + domain
-        records = self.search_fetch(_domain, specification.keys(), offset=offset, limit=limit, order=order)
-        values_records = records.web_read(specification)
-        nodes = []
-        for values_record in values_records:
-            children = self.web_search_read_tree(domain, specification, values_record['id'], depth - 1, offset, limit, order, count_limit)
-            nodes.append({
-                'data': values_record,
-                'children': children,
-            })
-        return nodes
-
     def _format_web_search_read_results(self, domain, records, offset=0, limit=None, count_limit=None):
         if not records:
             return {

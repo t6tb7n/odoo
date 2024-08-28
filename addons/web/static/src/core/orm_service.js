@@ -274,19 +274,6 @@ export class ORM {
 
     /**
      * @param {string} model
-     * @param {number} [parent_id]
-     * @param {number} depth
-     * @param {import("@web/core/domain").DomainListRepr} domain
-     * @param {any} [kwargs={}]
-     * @returns {Promise<any[]>}
-     */
-    webSearchReadTree(model, parent_id, depth, domain, kwargs = {}) {
-        validateArray("domain", domain);
-        return this.call(model, "web_search_read_tree", [], { ...kwargs, domain, parent_id, depth });
-    }
-
-    /**
-     * @param {string} model
      * @param {number[]} ids
      * @param {any} data
      * @param {any} [kwargs={}]

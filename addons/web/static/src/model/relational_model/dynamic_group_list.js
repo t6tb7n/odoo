@@ -4,30 +4,38 @@
 import { Domain } from "@web/core/domain";
 import { DynamicList } from "./dynamic_list";
 import { getGroupServerValue } from "./utils";
-import { Group } from "./group";
+
+/**
+ * @typedef GroupData
+ * @property {number} length
+ * @property {any} groups
+ */
+
+/**
+ * @typedef GroupData2
+ * @property {any} value
+ */
 
 export class DynamicGroupList extends DynamicList {
     static type = "DynamicGroupList";
 
     /**
      * @param {import("./relational_model").Config} config
-     * @param {import("./group").GroupData} data
+     * @param {GroupData} data
      */
     setup(config, data) {
         super.setup(...arguments);
         this.isGrouped = true;
         this._setData(data);
-        this.loaded = false;
     }
 
     /**
-     * @param {import("./group").GroupData} data
+     * @param {GroupData} data
      */
     _setData(data) {
         /** @type {import("./group").Group[]} */
         this.groups = data.groups.map((g) => this._createGroupDatapoint(g));
         this.count = data.length;
-        this.loaded = true;
     }
 
     // -------------------------------------------------------------------------
@@ -248,9 +256,6 @@ export class DynamicGroupList extends DynamicList {
         }
     }
 
-    /**
-     * @param {import("./group").GroupData} data
-     */
     _createGroupDatapoint(data) {
         return new this.model.constructor.Group(this.model, this.config.groups[data.value], data);
     }
@@ -284,11 +289,11 @@ export class DynamicGroupList extends DynamicList {
         return group[handleField];
     }
 
-    async _load(offset, limit, orderBy, domain, depth = 0) {
+    async _load(offset, limit, orderBy, domain) {
         await this.model._updateConfig(
             this.config,
-            { offset, limit, orderBy, domain, depth },
-            { commit: this._setData.bind(this), reload: !this.loaded },
+            { offset, limit, orderBy, domain },
+            { commit: this._setData.bind(this) }
         );
     }
 

@@ -155,7 +155,7 @@ export class DynamicList extends DataPoint {
         const offset = params.offset === undefined ? this.offset : params.offset;
         const orderBy = params.orderBy === undefined ? this.orderBy : params.orderBy;
         const domain = params.domain === undefined ? this.domain : params.domain;
-        return this.model.mutex.exec(() => this._load(offset, limit, orderBy, domain, params.depth));
+        return this.model.mutex.exec(() => this._load(offset, limit, orderBy, domain));
     }
 
     async multiSave(record) {
