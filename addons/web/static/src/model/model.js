@@ -4,6 +4,7 @@ import { useBus, useService } from "@web/core/utils/hooks";
 import { SEARCH_KEYS } from "@web/search/with_search/with_search";
 import { useSetupView } from "@web/views/view_hook";
 import { buildSampleORM } from "./sample_server";
+import { ORM } from "@web/core/orm_service";
 
 import { EventBus, onWillStart, onWillUpdateProps, useComponent } from "@odoo/owl";
 
@@ -18,7 +19,10 @@ export class Model {
      */
     constructor(env, params, services) {
         this.env = env;
+
+        /** @type {ORM} */
         this.orm = services.orm;
+
         this.bus = new EventBus();
         this.setup(params, services);
     }

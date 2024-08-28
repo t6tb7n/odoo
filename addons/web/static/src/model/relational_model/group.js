@@ -2,10 +2,29 @@
 
 import { Domain } from "@web/core/domain";
 import { DataPoint } from "./datapoint";
+import { Record } from "./record";
 
 /**
  * @typedef Params
  * @property {string[]} groupBy
+ */
+
+/**
+ * @typedef GroupData
+ * @property {import("./relational_model").Config} config
+ * @property {number} [length]
+ * @property {any} groups
+ * @property {any} [range]
+ * @property {any} [rawValue]
+ * @property {number} count
+ * @property {string} value
+ * @property {any} [serverValue]
+ * @property {string} displayName
+ * @property {Object} aggregates
+ * @property {any} [values]
+ * @property {string[]} groupBy
+ * @property {number} level
+ * @property {Record} _record
  */
 
 export class Group extends DataPoint {
@@ -13,6 +32,7 @@ export class Group extends DataPoint {
 
     /**
      * @param {import("./relational_model").Config} config
+     * @param {GroupData} data
      */
     setup(config, data) {
         super.setup(...arguments);
@@ -91,15 +111,61 @@ export class Group extends DataPoint {
         return this.model.mutex.exec(() => this._deleteRecords(records));
     }
 
-    async toggle() {
+    /**
+     * @param {number} [depth] 
+     */
+    async toggle(depth = 0) {
         if (this.config.isFolded) {
-            await this.list.load();
+            await this.list.load({ depth });
         }
         this.model._updateConfig(
             this.config,
             { isFolded: !this.config.isFolded },
             { reload: false }
         );
+    }
+
+    /**
+     * @param {number} [depth] 
+     */
+    async fold(depth = 0) {
+
+        if (depth > 0) {
+            for (const group of this.list.groups) {
+                await group.fold(depth - 1, true);
+            }
+        }
+
+        if (!this.config.isFolded) {
+            this.model._updateConfig(
+                this.config,
+                { isFolded: !this.config.isFolded },
+                { reload: false }
+            );
+        }
+
+    }
+
+    /**
+     * @param {number} [depth]
+     */
+    async expand(depth = 0) {
+
+        if (depth > 0) {
+            for (const group of this.list.groups) {
+                await group.expand(depth - 1);
+            }
+        }
+
+        if (this.config.isFolded) {
+            await this.list.load({ depth });
+            this.model._updateConfig(
+                this.config,
+                { isFolded: !this.config.isFolded },
+                { reload: false }
+            );
+        }
+
     }
 
     // -------------------------------------------------------------------------

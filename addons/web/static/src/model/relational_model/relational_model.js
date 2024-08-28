@@ -60,12 +60,16 @@ import {
  * @property {number} [offset]
  * @property {number} [countLimit]
  * @property {number} [groupsLimit]
- * @property {Object} [groups]
+ * @property {Object.<string, Config>} [groups]
  * @property {Object} [currentGroups] // FIXME: could be cleaned
  * @property {boolean} [openGroupsByDefault]
+ * @property {Object} [list]
  * @property {Record} [_record] // [TECHSAT] added for tree
  * @property {number} [level] // [TECHSAT] added for tree
- * @property {[number]} [parent_id] // [TECHSAT] added for tree
+ * @property {number} [parent_id] // [TECHSAT] added for tree
+ * @property {boolean} [recursive] // [TECHSAT] added for tree
+ * @property {number} [depth] // [TECHSAT] added for tree
+ * @property {number} [autoExpandDepth] // [TECHSAT] added for tree
  */
 
 /**
