@@ -552,7 +552,7 @@ export class RelationalModel extends Model {
                 context: { bin_size: true, ...context },
                 specification: fieldSpec,
             };
-            const records = await this.orm.webRead(resModel, resIds, kwargs);
+            const records = await this.orm.webReadWithValidityInfo(resModel, resIds, kwargs);
             if (!records.length) {
                 throw new FetchRecordError(resIds);
             }
@@ -582,7 +582,7 @@ export class RelationalModel extends Model {
             count_limit:
                 config.countLimit !== Number.MAX_SAFE_INTEGER ? config.countLimit + 1 : undefined,
         };
-        return this.orm.webSearchRead(config.resModel, config.domain, kwargs);
+        return this.orm.webSearchReadWithValidityInfo(config.resModel, config.domain, kwargs);
     }
 
     /**
@@ -593,7 +593,7 @@ export class RelationalModel extends Model {
      * @param {Object} [param.evalContext=config.context]
      * @returns Promise<Object>
      */
-    async _onchange(
+    async _onchangeWithValidityInfo(
         config,
         { changes = {}, fieldNames = [], evalContext = config.context, onError }
     ) {
@@ -627,7 +627,14 @@ export class RelationalModel extends Model {
                 });
             }
         }
-        return response.value;
+        if (response.validity_info) {
+            console.log("validity_info", response.validity_info);
+        }
+        return [response.value, response.validity_info || {}];
+    }
+
+    async _onchange(config, params) {
+        return (await this._onchangeWithValidityInfo(config, params))[0];
     }
 
     /**

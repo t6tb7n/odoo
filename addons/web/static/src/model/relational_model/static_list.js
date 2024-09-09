@@ -63,7 +63,7 @@ export class StaticList extends DataPoint {
         // config to add the form view's fields in activeFields.
         this._extendedRecords = new Set();
 
-        this.records = data
+        this.records = data.value
             .slice(this.offset, this.limit)
             .map((r) => this._createRecordDatapoint(r));
         this.count = this.resIds.length;
