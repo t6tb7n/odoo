@@ -496,9 +496,7 @@ export class FormController extends Component {
 
     async beforeExecuteActionButton(clickParams) {
         const record = this.model.root;
-        if (clickParams.name === "action_discard") {
-            return;
-        } else if (clickParams.special !== "cancel") {
+        if (clickParams.special !== "cancel") {
             let saved = false;
             if (clickParams.special === "save" && this.props.saveRecord) {
                 saved = await this.props.saveRecord(record, clickParams);

@@ -77,13 +77,13 @@ export class Record extends DataPoint {
     _setData(data) {
         this._isEvalContextReady = false;
         if (this.resId) {
-            [this._values, this._validityInfo] = this._parseServerValues(data);
+            this._values = this._parseServerValues(data);
             this._changes = markRaw({});
             Object.assign(this._textValues, this._getTextValues(data));
         } else {
             this._values = markRaw({});
             const allVals = { ...this._getDefaultValues(), ...data };
-            [this._initialChanges, this._validityInfo] = markRaw(this._parseServerValues(allVals));
+            this._initialChanges = markRaw(this._parseServerValues(allVals));
             this._changes = markRaw({ ...this._initialChanges });
             Object.assign(this._textValues, this._getTextValues(allVals));
         }
@@ -130,8 +130,7 @@ export class Record extends DataPoint {
     }
 
     get isValid() {
-        return !this.data.invalid 
-        // return !this._invalidFields.size;
+        return !this._invalidFields.size;
     }
 
     get resId() {
@@ -174,7 +173,7 @@ export class Record extends DataPoint {
             } else {
                 this.model._updateConfig(this.config, { resId: false }, { reload: false });
                 this.dirty = false;
-                this._changes, this._validityInfo = markRaw(this._parseServerValues(this._getDefaultValues()));
+                this._changes = markRaw(this._parseServerValues(this._getDefaultValues()));
                 this._values = markRaw({});
                 this._textValues = markRaw({});
                 this.data = { ...this._changes };
@@ -218,9 +217,7 @@ export class Record extends DataPoint {
      * @param {string} fieldName
      */
     isFieldInvalid(fieldName) {
-        return this._validityInfo[fieldName];
         return this._invalidFields.has(fieldName);
-        
     }
 
     load() {
@@ -329,7 +326,7 @@ export class Record extends DataPoint {
         }
 
         // Apply server changes
-        const [parsedChanges, validityInfo] = this._parseServerValues(serverChanges, this.data);
+        const parsedChanges = this._parseServerValues(serverChanges, this.data);
         for (const fieldName in parsedChanges) {
             this._changes[fieldName] = parsedChanges[fieldName];
             this.data[fieldName] = parsedChanges[fieldName];
@@ -354,7 +351,7 @@ export class Record extends DataPoint {
     }
 
     _applyValues(values) {
-        const [newValues, validityInfo] = this._parseServerValues(values);
+        const newValues = this._parseServerValues(values);
         Object.assign(this._values, newValues);
         for (const fieldName in newValues) {
             if (fieldName in this._changes) {
@@ -510,7 +507,7 @@ export class Record extends DataPoint {
             fields: (related && related.fields) || {},
             relationField: this.fields[fieldName].relation_field || false,
             offset: 0,
-            resIds: data.value.map((r) => r.id),
+            resIds: data.map((r) => r.id),
             orderBy: defaultOrderBy || [],
             limit: limit || Number.MAX_SAFE_INTEGER,
             currentCompanyId: this.currentCompanyId,
@@ -744,15 +741,11 @@ export class Record extends DataPoint {
 
     _parseServerValues(serverValues, currentValues = {}) {
         const parsedValues = {};
-        const validityInfo = {};
         if (!serverValues) {
-            return [parsedValues, validityInfo];
+            return parsedValues;
         }
         for (const fieldName in serverValues) {
-            const value = serverValues[fieldName].value;
-            const invalid = serverValues[fieldName].invalid;
-            validityInfo[fieldName] = invalid;
-
+            const value = serverValues[fieldName];
             if (!this.activeFields[fieldName]) {
                 continue;
             }
@@ -769,7 +762,7 @@ export class Record extends DataPoint {
                             return { id: resId };
                         });
                     }
-                    staticList = this._createStaticListDatapoint({ ...serverValues[fieldName], value: data }, fieldName);
+                    staticList = this._createStaticListDatapoint(data, fieldName);
                 }
                 if (valueIsCommandList) {
                     staticList._applyCommands(value);
@@ -791,7 +784,7 @@ export class Record extends DataPoint {
                 }
             }
         }
-        return [parsedValues, validityInfo];
+        return parsedValues;
     }
 
     async _preprocessReferenceChanges(changes) {
@@ -1070,7 +1063,7 @@ export class Record extends DataPoint {
             throw new FetchRecordError(nextId || this.resId);
         }
         if (creation) {
-            const resId = records[0].id.value;
+            const resId = records[0].id;
             const resIds = this.resIds.concat([resId]);
             this.model._updateConfig(this.config, { resId, resIds }, { reload: false });
         }
@@ -1192,7 +1185,7 @@ export class Record extends DataPoint {
                 localChanges[this.config.relationField].id = this._parentRecord.resId;
             }
         }
-        return this.model._onchangeWithValidityInfo(this.config, {
+        return this.model._onchange(this.config, {
             changes: localChanges,
             fieldNames: onChangeFields,
             evalContext: toRaw(this.evalContext),
@@ -1223,9 +1216,8 @@ export class Record extends DataPoint {
         }
 
         let onchangeServerValues = {};
-        let validityInfo = {};
         if (!this.model._urgentSave && !withoutOnchange) {
-            [onchangeServerValues, validityInfo] = await this._getOnchangeValues(changes);
+            onchangeServerValues = await this._getOnchangeValues(changes);
         }
         // changes inside the record set as value for a many2one field must trigger the onchange,
         // but can't be considered as changes on the parent record, so here we detect if many2one
@@ -1239,11 +1231,6 @@ export class Record extends DataPoint {
                 }
             }
         }
-
-        for (const [key, value] of Object.entries(validityInfo)) {
-            this.data[key].invalid = value;
-        }
-
         const undoChanges = this._applyChanges(changes, onchangeServerValues);
         if (Object.keys(changes).length > 0 || Object.keys(onchangeServerValues).length > 0) {
             try {

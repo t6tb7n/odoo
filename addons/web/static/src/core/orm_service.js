@@ -263,19 +263,6 @@ export class ORM {
 
     /**
      * @param {string} model
-     * @param {number[]} ids
-     * @param {any} [kwargs={}]
-     * @param {Object} [kwargs.specification]
-     * @param {Object} [kwargs.context]
-     * @returns {Promise<any[]>}
-     */
-    webReadWithValidityInfo(model, ids, kwargs = {}) {
-        validatePrimitiveList("ids", "number", ids);
-        return this.call(model, "web_read_with_validity_info", [ids], kwargs);
-    }
-
-    /**
-     * @param {string} model
      * @param {import("@web/core/domain").DomainListRepr} domain
      * @param {any} [kwargs={}]
      * @returns {Promise<any[]>}
@@ -283,17 +270,6 @@ export class ORM {
     webSearchRead(model, domain, kwargs = {}) {
         validateArray("domain", domain);
         return this.call(model, "web_search_read", [], { ...kwargs, domain });
-    }
-
-    /**
-     * @param {string} model
-     * @param {import("@web/core/domain").DomainListRepr} domain
-     * @param {any} [kwargs={}]
-     * @returns {Promise<any[]>}
-     */
-    webSearchReadWithValidityInfo(model, domain, kwargs = {}) {
-        validateArray("domain", domain);
-        return this.call(model, "web_search_read_with_validity_info", [], { ...kwargs, domain });
     }
 
     /**

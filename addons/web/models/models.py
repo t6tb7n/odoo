@@ -47,13 +47,6 @@ class Base(models.AbstractModel):
         values_records = records.web_read(specification)
         return self._format_web_search_read_results(domain, values_records, offset, limit, count_limit)
 
-    @api.model
-    def web_search_read_with_validity_info(self, domain, specification, offset=0, limit=None, order=None, count_limit=None):
-        records = self.search_fetch(domain, specification.keys(), offset=offset, limit=limit, order=order)
-        values_records = records.web_read_with_validity_info(specification)
-        return self._format_web_search_read_results(domain, values_records, offset, limit, count_limit)
-
-
     def _format_web_search_read_results(self, domain, records, offset=0, limit=None, count_limit=None):
         if not records:
             return {
@@ -83,7 +76,6 @@ class Base(models.AbstractModel):
         return self.with_context(bin_size=True).web_read(specification)
 
     def web_read(self, specification: Dict[str, Dict]) -> List[Dict]:
-
         fields_to_read = list(specification) or ['id']
 
         if fields_to_read == ['id']:
@@ -225,169 +217,8 @@ class Base(models.AbstractModel):
 
         return values_list
 
-    def web_read_with_validity_info(self, specification: Dict[str, Dict]) -> List[Dict]:
-        fields_to_read = list(specification) or ['id']
-
-        if fields_to_read == ['id']:
-            # if we request to read only the ids, we have them already so we can build the return dictionaries immediately
-            # this also avoid a call to read on the co-model that might have different access rules
-            values_list = [{'id': id_} for id_ in self._ids]
-        else:
-            values_list: List[Dict] = self.read(fields_to_read, load=None)
-
-        if not values_list:
-            return values_list
-
-        def add_validity_info(values):
-            result = {}
-            for key, value in values.items():
-                result[key] = {
-                    'value': value,
-                    'invalid': hasattr(self, 'is_field_invalid') and self.is_field_invalid(key),
-                }
-            return result
-
-        values_list = [add_validity_info(values) for values in values_list]
-
-        def cleanup(vals: Dict) -> Dict:
-            """ Fixup vals['id'] of a new record. """
-            if not vals['id']:
-                vals['id']['value'] = vals['id']['value'].origin or False
-            return vals
-
-        for field_name, field_spec in specification.items():
-            field = self._fields.get(field_name)
-            if field is None:
-                continue
-
-            if field.type == 'many2one':
-                if 'fields' not in field_spec:
-                    for values in values_list:
-                        if isinstance(values[field_name], NewId):
-                            values[field_name] = values[field_name].origin
-                    continue
-
-                co_records = self[field_name]
-                if 'context' in field_spec:
-                    co_records = co_records.with_context(**field_spec['context'])
-
-                extra_fields = dict(field_spec['fields'])
-                extra_fields.pop('display_name', None)
-
-                many2one_data = {
-                    vals['id']['value']: cleanup(vals)
-                    for vals in co_records.web_read_with_validity_info(extra_fields)
-                }
-
-                if 'display_name' in field_spec['fields']:
-                    for rec in co_records.sudo():
-                        many2one_data[rec.id]['display_name'] = { 'value': rec.display_name, 'invalid': False }
-
-                for values in values_list:
-                    if values[field_name]['value'] is False:
-                        continue
-                    vals = many2one_data[values[field_name]['value']]
-                    values[field_name] = vals['id'] and { 'value': vals, 'invalid': False }
-                    print(values[field_name])
-
-            elif field.type in ('one2many', 'many2many'):
-                if not field_spec:
-                    for values in values_list:
-                        values[field_name]['value'] = [{ 'id': { 'value': id_, 'invalid': False } } for id_ in values[field_name]['value']]
-                    continue
-
-                co_records = self[field_name]
-
-                if 'order' in field_spec and field_spec['order']:
-                    co_records = co_records.search([('id', 'in', co_records.ids)], order=field_spec['order'])
-                    order_key = {
-                        co_record.id: index
-                        for index, co_record in enumerate(co_records)
-                    }
-                    for values in values_list:
-                        # filter out inaccessible corecords in case of "cache pollution"
-                        values[field_name] = [id_ for id_ in values[field_name] if id_ in order_key]
-                        values[field_name] = sorted(values[field_name], key=order_key.__getitem__)
-
-                if 'context' in field_spec:
-                    co_records = co_records.with_context(**field_spec['context'])
-
-                if 'fields' in field_spec:
-                    if field_spec.get('limit') is not None:
-                        limit = field_spec['limit']
-                        ids_to_read = OrderedSet(
-                            id_
-                            for values in values_list
-                            for id_ in values[field_name]['value'][:limit]
-                        )
-                        co_records = co_records.browse(ids_to_read)
-
-                    x2many_data = {
-                        vals['id']['value']: vals
-                        for vals in co_records.web_read_with_validity_info(field_spec['fields'])
-                    }
-
-                    for values in values_list:
-                        values[field_name]['value'] = [x2many_data.get(id_) or {'id': { 'value': id_, 'invalid': False } } for id_ in values[field_name]['value']]
-                else:
-                    for values in values_list:
-                        values[field_name]['value'] = [{ 'id': { 'value': id_, 'invalid': False } } for id_ in values[field_name]['value']]
-
-            elif field.type in ('reference', 'many2one_reference'):
-                assert False
-                if not field_spec:
-                    continue
-
-                values_by_id = {
-                    vals['id']: vals
-                    for vals in values_list
-                }
-                for record in self:
-                    if not record[field_name]:
-                        continue
-
-                    if field.type == 'reference':
-                        co_record = record[field_name]
-                    else:  # field.type == 'many2one_reference'
-                        co_record = self.env[record[field.model_field]].browse(record[field_name])
-
-                    if 'context' in field_spec:
-                        co_record = co_record.with_context(**field_spec['context'])
-
-                    if 'fields' in field_spec:
-                        reference_read = co_record.web_read_with_validity_info(field_spec['fields'])
-                        if any(fname != 'id' for fname in field_spec['fields']):
-                            # we can infer that if we can read fields for the co-record, it exists
-                            co_record_exists = bool(reference_read)
-                        else:
-                            co_record_exists = co_record.exists()
-                    else:
-                        # If there are no fields to read (field_spec.get('fields') --> None) and we web_read ids, it will
-                        # not actually read the records so we do not know if they exist.
-                        # This ensures the record actually exists
-                        co_record_exists = co_record.exists()
-
-                    record_values = values_by_id[record.id]
-
-                    if not co_record_exists:
-                        record_values[field_name] = False
-                        if field.type == 'many2one_reference':
-                            record_values[field.model_field] = False
-                        continue
-
-                    if 'fields' in field_spec:
-                        record_values[field_name] = reference_read[0]
-                        if field.type == 'reference':
-                            record_values[field_name]['id'] = {
-                                'id': co_record.id,
-                                'model': co_record._name
-                            }
-
-        return values_list
-
     @api.model
     def web_read_group(self, domain, fields, groupby, limit=None, offset=0, orderby=False, lazy=True):
-        assert False
         """
         Returns the result of a read_group and the total number of groups matching the search domain.
 

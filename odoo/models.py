@@ -6942,8 +6942,6 @@ class BaseModel(metaclass=MetaModel):
                     res['warning'].get('message') or "",
                     res['warning'].get('type') or "",
                 ))
-            if res.get('validity_info'):
-                result.setdefault('validity_info', {}).update(res['validity_info'])
 
     def onchange(self, values: Dict, field_names: List[str], fields_spec: Dict):
         raise NotImplementedError("onchange() is implemented in module 'web'")

@@ -442,7 +442,7 @@ export function parseServerValue(field, value) {
                 // Used for web_read_group, where the value is an array of [id, display_name]
                 return value;
             }
-            return value ? [value.id.value, value.display_name.value] : false;
+            return value ? [value.id, value.display_name] : false;
         }
         case "properties": {
             return value
